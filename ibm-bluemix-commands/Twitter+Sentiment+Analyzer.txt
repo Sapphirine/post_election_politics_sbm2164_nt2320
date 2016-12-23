@@ -1,0 +1,43 @@
+# Twitter Sentiment App: Post-Election Results 
+# The following commands were run on IBM BlueMix
+
+%AddJar https://github.com/nazlituncer94/BDA-twitter-stream/blob/master/streaming-twitter-assembly-1.6.jar?raw=true -f
+
+val demo = com.ibm.cds.spark.samples.StreamingTwitter //Shorter handle
+    //Twitter OAuth params from section above
+    demo.setConfig("twitter4j.oauth.consumerKey","c7eF6gBEni98FDAX509f2Vzbb")
+    demo.setConfig("twitter4j.oauth.consumerSecret","YHtkRpRsnlHVACJQf9jDntyPSs5WlLVk0aGmlTQARAuC9cjOQU")
+    demo.setConfig("twitter4j.oauth.accessToken","253647885-wy1mQaI6U2UQKN0dFSaYQjD5N02EDm54JZjCnBW6")
+    demo.setConfig("twitter4j.oauth.accessTokenSecret","CO2dbDTdYBvGgHEEcBXPxzykATuMoePDxcLIYU6xqoR6o")
+    //Tone Analyzer service credential copied from section above
+    demo.setConfig("watson.tone.url","https://gateway.watsonplatform.net/tone-analyzer/api")
+    demo.setConfig("watson.tone.password","0aKZOt1Lqka4")
+    demo.setConfig("watson.tone.username","1b4a5627-9535-4560-bcea-6072c8b358df")
+
+import org.apache.spark.streaming._
+    demo.startTwitterStreaming(sc, Seconds(30))
+
+val (sqlContext, df) = demo.createTwitterDataFrames(sc)
+
+val fullSet = sqlContext.sql("select * from tweets limit 100000")  //Select all columns
+    fullSet.show
+
+fullSet.repartition(1).saveAsParquetFile("swift://notebooks.spark/tweetsFull.parquet")
+
+val trumpSet = sqlContext.sql("select * from tweets where text like '%trump%'")  //Select all columns
+    fullSet.show
+
+val fullSet = sqlContext.sql("select text from tweets where text like '%Trump%' or text like '%Hillary%' or text like '%Kanye%'")  //Select all columns
+    fullSet.show
+
+val fullSet = sqlContext.sql("select * from tweets where text like '%Trump%' or text like '%Hillary%' or text like '%Kanye%' or text like '%Putin%' or text like '%hack%' or text like '%Russia%' or text like '%Rick Perry%'")  //Select all columns
+    fullSet.show
+fullSet.coalesce(1).write.format("com.databricks.spark.csv").option("header", "true").save("swift://notebooks.spark/trump.csv")
+
+fullSet.write.format("com.databricks.spark.csv").save("swift://notebooks.spark/trump.csv")
+
+val fullSet = sqlContext.sql("select * from tweets where text like '%Trump%' or text like '%Hillary%' or text like '%Kanye%' or text like '%Putin%' or text like '%hack%' or text like '%Russia%' or text like '%Rick Perry%'")  //Select all columns
+    fullSet.show
+fullSet.repartition(1).saveAsParquetFile("swift://notebooks.spark/tweetsFull.parquet")
+
+
